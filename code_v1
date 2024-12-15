@@ -2,13 +2,13 @@
 
 Data Structure [Project] -> Mental Health Patient Monitor and Recommendations System */
 
-
 import java.awt.*;
-import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.Queue;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 
-// Interface for Patient Operations
+//interface for patient operation
 interface PatientOperations {
     void addPatient(PatientInformation patient);
     void updatePatient(String name, PatientInformation updatedInfo);
@@ -19,8 +19,8 @@ interface PatientOperations {
 
 public class MentalHealthProject implements PatientOperations {
 
-    // Using ArrayList for storing patient information
-    private ArrayList<PatientInformation> infoList = new ArrayList<>();
+    //The linked type of LIST (OR QUEUE) is ONLY mandatory for the PROJECT.
+    private Queue<PatientInformation> infoQueue = new LinkedList<>();
     private DefaultTableModel tableModel;
 
     private JFrame frame;
@@ -29,7 +29,7 @@ public class MentalHealthProject implements PatientOperations {
     private JRadioButton maleButton, femaleButton;
     private JButton addButton, updateButton, deleteButton, searchButton, displayButton, exitButton;
 
-    // main method
+    //main
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new MentalHealthProject().createAndShowGUI());
     }
@@ -40,7 +40,7 @@ public class MentalHealthProject implements PatientOperations {
         frame.setSize(900, 600);
         frame.setLayout(new BorderLayout());
 
-        // Input panel
+        //input panel
         JPanel inputPanel = new JPanel(new GridLayout(6, 2));
         inputPanel.setBorder(BorderFactory.createTitledBorder("Patient Information"));
 
@@ -71,21 +71,20 @@ public class MentalHealthProject implements PatientOperations {
         inputPanel.add(medHistoryField);
         inputPanel.add(new JLabel("Contact:"));
         inputPanel.add(contactField);
- 
-        String[] columnNames = {"Name", "Age", "Gender", "Address", "Medical History  ", "Contact", "Recommendation"};
+
+        String[] columnNames = {"Name", "Age", "Gender", "Address", "Medical History", "Contact", "Recommendation"};
         tableModel = new DefaultTableModel(columnNames, 0);
         displayTable = new JTable(tableModel);
         displayTable.getTableHeader().setReorderingAllowed(false);
-        displayTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF); 
+        displayTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         displayTable.getColumnModel().getColumn(6).setPreferredWidth(300);
-
 
         JPanel tablePanel = new JPanel(new BorderLayout());
         tablePanel.setBorder(BorderFactory.createTitledBorder("Patient Information"));
         tablePanel.add(displayTable.getTableHeader(), BorderLayout.NORTH);
         tablePanel.add(displayTable, BorderLayout.CENTER);
 
-        // Button panel
+        //button panel
         JPanel buttonPanel = new JPanel(new GridLayout(1, 6));
         addButton = new JButton("Add");
         updateButton = new JButton("Update");
@@ -108,7 +107,7 @@ public class MentalHealthProject implements PatientOperations {
         displayButton.addActionListener(e -> displayAllPatients());
         exitButton.addActionListener(e -> System.exit(0));
 
-        // Add components to JFrame
+        //add border to jFrame
         frame.add(inputPanel, BorderLayout.NORTH);
         frame.add(tablePanel, BorderLayout.CENTER);
         frame.add(buttonPanel, BorderLayout.SOUTH);
@@ -116,10 +115,10 @@ public class MentalHealthProject implements PatientOperations {
         frame.setVisible(true);
     }
 
-    // Add patient information
+    //add
     @Override
     public void addPatient(PatientInformation patient) {
-        infoList.add(patient);
+        infoQueue.add(patient);
         tableModel.addRow(new Object[]{
             patient.name, patient.age, patient.gender, patient.address, patient.medHistory, patient.contact, getRecommendations(patient)
         });
@@ -127,45 +126,64 @@ public class MentalHealthProject implements PatientOperations {
         clearForm();
     }
 
-    // Update patient information
+    //update
     @Override
     public void updatePatient(String name, PatientInformation updatedInfo) {
-        for (int i = 0; i < infoList.size(); i++) {
-            if (infoList.get(i).name.equalsIgnoreCase(name)) {
-                infoList.set(i, updatedInfo);
-                displayAllPatients();
-                JOptionPane.showMessageDialog(frame, "Information updated successfully");
-                return;
+        boolean found = false;
+        Queue<PatientInformation> tempQueue = new LinkedList<>();
+
+        while (!infoQueue.isEmpty()) {
+            PatientInformation current = infoQueue.poll();
+            if (current.name.equalsIgnoreCase(name)) {
+                tempQueue.add(updatedInfo);
+                found = true;
+            } else {
+                tempQueue.add(current);
             }
         }
-        JOptionPane.showMessageDialog(frame, "Patient not found", "Error", JOptionPane.ERROR_MESSAGE);
+
+        infoQueue = tempQueue;
+
+        if (found) {
+            displayAllPatients();
+            JOptionPane.showMessageDialog(frame, "Information updated successfully");
+        } else {
+            JOptionPane.showMessageDialog(frame, "Patient not found", "Error", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
-    // Delete patient information
+    //delete
     @Override
     public void deletePatient(String name) {
         boolean found = false;
-        for (int i = 0; i < infoList.size(); i++) {
-            if (infoList.get(i).name.equalsIgnoreCase(name)) {
-                infoList.remove(i);
+        Queue<PatientInformation> tempQueue = new LinkedList<>();
+
+        while (!infoQueue.isEmpty()) {
+            PatientInformation current = infoQueue.poll();
+            if (current.name.equalsIgnoreCase(name)) {
                 found = true;
-                displayAllPatients();
-                JOptionPane.showMessageDialog(frame, "Information deleted successfully");
-                break;
+            } else {
+                tempQueue.add(current);
             }
         }
-        if (!found) {
+
+        infoQueue = tempQueue;
+
+        if (found) {
+            displayAllPatients();
+            JOptionPane.showMessageDialog(frame, "Information deleted successfully");
+        } else {
             JOptionPane.showMessageDialog(frame, "Patient not found", "Error", JOptionPane.ERROR_MESSAGE);
         }
         clearForm();
     }
 
-    // Search for patient information
+    //search
     @Override
     public void searchPatient(String name) {
         tableModel.setRowCount(0);
         boolean found = false;
-        for (PatientInformation info : infoList) {
+        for (PatientInformation info : infoQueue) {
             if (info.name.equalsIgnoreCase(name)) {
                 tableModel.addRow(new Object[]{
                     info.name, info.age, info.gender, info.address, info.medHistory, info.contact, getRecommendations(info)
@@ -180,18 +198,18 @@ public class MentalHealthProject implements PatientOperations {
         }
     }
 
-    // Display all patient information
+    //display all patients
     @Override
     public void displayAllPatients() {
         tableModel.setRowCount(0);
-        for (PatientInformation info : infoList) {
+        for (PatientInformation info : infoQueue) {
             tableModel.addRow(new Object[]{
                 info.name, info.age, info.gender, info.address, info.medHistory, info.contact, getRecommendations(info)
             });
         }
     }
 
-    // Recommendation based on medical history
+    //recommendation
     private String getRecommendations(PatientInformation info) {
         String history = info.medHistory.toLowerCase();
         if (history.contains("anxiety")) {
@@ -209,7 +227,7 @@ public class MentalHealthProject implements PatientOperations {
         }
     }
 
-    // Clear input fields
+    //clear fields
     private void clearForm() {
         nameField.setText("");
         ageField.setText("");
@@ -220,7 +238,7 @@ public class MentalHealthProject implements PatientOperations {
         femaleButton.setSelected(false);
     }
 
-    // Add patient information from form fields
+    //add patient info
     private void addPatientInformation() {
         try {
             String name = nameField.getText().trim();
@@ -242,7 +260,7 @@ public class MentalHealthProject implements PatientOperations {
         }
     }
 
-    // Update patient information from form fields
+    //update patient info
     private void updatePatientInformation() {
         String name = nameField.getText().trim();
         if (name.isEmpty()) {
@@ -258,7 +276,7 @@ public class MentalHealthProject implements PatientOperations {
         updatePatient(name, updatedInfo);
     }
 
-    // Delete patient information from form fields
+    //delete patient info
     private void deletePatientInformation() {
         String name = nameField.getText().trim();
         if (name.isEmpty()) {
@@ -269,7 +287,7 @@ public class MentalHealthProject implements PatientOperations {
         deletePatient(name);
     }
 
-    // Search patient information from form fields
+    //search patient info
     private void searchPatientInformation() {
         String name = nameField.getText().trim();
         if (name.isEmpty()) {
@@ -281,7 +299,7 @@ public class MentalHealthProject implements PatientOperations {
     }
 }
 
-// User information class
+//all user var
 class PatientInformation {
     String name;
     int age;
