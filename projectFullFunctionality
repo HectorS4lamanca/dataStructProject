@@ -1,0 +1,433 @@
+import java.awt.*;
+import java.util.LinkedList;
+import java.util.Queue;
+import javax.swing.*;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.DefaultTableModel;
+
+class PatientInfo {
+    String name;
+    int age;
+    String gender;
+    String address;
+    String medHistory;
+    String contact;
+
+    public PatientInfo(String name, int age, String gender, String address, String medHistory, String contact) {
+        this.name = name;
+        this.age = age;
+        this.gender = gender;
+        this.address = address;
+        this.medHistory = medHistory;
+        this.contact = contact;
+    }
+}
+
+interface PatientOperations {
+    void addPatient(PatientInfo patient);
+
+    void updatePatient(String name, PatientInfo patient);
+
+    void displayAllPatients();
+}
+
+public class patientInformationSystem implements PatientOperations {
+
+    private Queue<PatientInfo> infoQueue = new LinkedList<>();
+    private PatientInfo currentPatientToUpdate = null;
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> new patientInformationSystem().patientInformationSystemGUI());
+    }
+
+    private void patientInformationSystemGUI() {
+
+        JFrame frame = new JFrame("Mental Health Patient Management and Recommendation System");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setSize(900, 640);
+        frame.setLayout(new BorderLayout(10, 10));
+
+        // inputPanel
+        JPanel inputPanel = new JPanel(new BorderLayout(10, 10));
+        inputPanel.setBorder(BorderFactory.createTitledBorder("Patient Information"));
+
+        JPanel labelsPanel = new JPanel(new GridLayout(6, 1, 8, 9));
+        
+        labelsPanel.add(new JLabel("       Name:"));
+        labelsPanel.add(new JLabel("       Age:"));
+        labelsPanel.add(new JLabel("       Gender:"));
+        labelsPanel.add(new JLabel("       Address:"));
+        labelsPanel.add(new JLabel("       Medical History:"));
+        labelsPanel.add(new JLabel("       Patient Contact:"));
+
+        JPanel fieldsPanel = new JPanel(new GridLayout(6, 1, 5, 5));
+        JTextField nameField = new JTextField();
+
+        JSpinner ageSpinner = new JSpinner(new SpinnerNumberModel(1, 1, 150, 1));
+        ((JSpinner.DefaultEditor) ageSpinner.getEditor()).getTextField().setHorizontalAlignment(SwingConstants.LEFT);
+
+        ButtonGroup genderGroup = new ButtonGroup();
+        JRadioButton maleButton = new JRadioButton("Male");
+        JRadioButton femaleButton = new JRadioButton("Female");
+        genderGroup.add(maleButton);
+        genderGroup.add(femaleButton);
+
+        JPanel genderPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        genderPanel.add(maleButton);
+        genderPanel.add(femaleButton);
+
+        JTextField addressField = new JTextField();
+
+        String[] mentalHealthOptions = {"Anxiety", "Depression", "Stress", "Bipolar Disorder", "Insomnia", "Other"};
+        JComboBox<String> medHistoryDropdown = new JComboBox<>(mentalHealthOptions);
+
+        JTextField contactField = new JTextField();
+
+        fieldsPanel.add(nameField);
+        fieldsPanel.add(ageSpinner);
+        fieldsPanel.add(genderPanel);
+        fieldsPanel.add(addressField);
+        fieldsPanel.add(medHistoryDropdown);
+        fieldsPanel.add(contactField);
+
+        //combine label and textField side by side
+        JPanel combinedPanel = new JPanel(new BorderLayout(20, 100));
+        combinedPanel.add(labelsPanel, BorderLayout.WEST);
+        combinedPanel.add(fieldsPanel, BorderLayout.CENTER);
+
+        inputPanel.add(combinedPanel, BorderLayout.NORTH);
+
+        //tablePanel
+        String[] columnNames = { "Name", "Age", "Gender", "Address", "Medical History", "Contact", "Recommendation" };
+        DefaultTableModel tableModel = new DefaultTableModel(columnNames, 0);
+        JTable patientTable = new JTable(tableModel);
+        patientTable.getTableHeader().setReorderingAllowed(false);
+        patientTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        patientTable.getColumnModel().getColumn(6).setPreferredWidth(300);
+
+        JPanel tablePanel = new JPanel(new BorderLayout());
+        tablePanel.setBorder(BorderFactory.createTitledBorder("Patient Information Data"));
+        tablePanel.add(patientTable.getTableHeader(), BorderLayout.NORTH);
+        tablePanel.add(patientTable, BorderLayout.CENTER);
+
+        //searchPanel
+        JPanel searchPanel = new JPanel(new BorderLayout(5, 5));
+        JTextField searchField = new JTextField();
+        JButton searchButton = new JButton("Search Patient");
+        searchPanel.add(searchField, BorderLayout.CENTER);
+        searchPanel.add(searchButton, BorderLayout.EAST);
+
+        tablePanel.add(searchPanel, BorderLayout.SOUTH);
+
+        //buttonPanel
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 20, 10));
+        JButton addButton = new JButton("Add Patient");
+        JButton updateButton = new JButton("Update Patient");
+        JButton displayButton = new JButton("Display All");
+
+        JButton deleteButton = new JButton("Delete Patient");
+        deleteButton.setBackground(new Color(250, 175, 160));
+
+        buttonPanel.add(addButton);
+        buttonPanel.add(updateButton);
+        buttonPanel.add(displayButton);
+        buttonPanel.add(deleteButton);
+
+        //addButtonListener
+        addButton.addActionListener(e -> {
+            String name = nameField.getText().trim();
+            int age = (int) ageSpinner.getValue();
+            String gender = maleButton.isSelected() ? "Male" : (femaleButton.isSelected() ? "Female" : "");
+            String address = addressField.getText().trim();
+            String medHistory = (String) medHistoryDropdown.getSelectedItem();
+            String contact = contactField.getText().trim();
+
+            if (name.isEmpty() || gender.isEmpty() || address.isEmpty() || contact.isEmpty()) {
+                JOptionPane.showMessageDialog(frame, "Please fill all fields", "Input Error",
+                        JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            PatientInfo patient = new PatientInfo(name, age, gender, address, medHistory, contact);
+            addPatient(patient);
+
+            tableModel.addRow(new Object[] {
+                    patient.name,
+                    patient.age,
+                    patient.gender,
+                    patient.address,
+                    patient.medHistory,
+                    patient.contact,
+                    getRecommendations(patient)
+            });
+
+            JOptionPane.showMessageDialog(frame, "Patient data added");
+
+            nameField.setText("");
+            ageSpinner.setValue(1);
+            genderGroup.clearSelection();
+            addressField.setText("");
+            medHistoryDropdown.setSelectedIndex(0);
+            contactField.setText("");
+        });
+
+        //updateButtonListener
+        updateButton.addActionListener(e -> {
+
+            tableModel.setRowCount(0);
+
+            if (currentPatientToUpdate == null) {
+                String nameToUpdate = nameField.getText().trim();
+                if (nameToUpdate.isEmpty()) {
+                    JOptionPane.showMessageDialog(frame, "Please enter a name to search for update.", "Input Error",
+                            JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                for (PatientInfo patient : infoQueue) {
+                    if (patient.name.equalsIgnoreCase(nameToUpdate)) {
+                        currentPatientToUpdate = patient;
+
+                        //rewrite patient data inside textField based on searched patient name
+                        ageSpinner.setValue(patient.age);
+                        if ("Male".equalsIgnoreCase(patient.gender)) {
+                            maleButton.setSelected(true);
+                        } else if ("Female".equalsIgnoreCase(patient.gender)) {
+                            femaleButton.setSelected(true);
+                        }
+                        addressField.setText(patient.address);
+                        medHistoryDropdown.setSelectedItem(patient.medHistory);
+                        contactField.setText(patient.contact);
+
+                        JOptionPane.showMessageDialog(frame, "Patient name [ " + patient.name.toUpperCase() + " ] found. Update the information and click the Update button to save new details.");
+                        return;
+                    }
+                }
+
+                JOptionPane.showMessageDialog(frame, "Patient name not found.", "Search Error", JOptionPane.ERROR_MESSAGE);
+
+            } else {
+
+                //save updated data
+                currentPatientToUpdate.age = (int) ageSpinner.getValue();
+                currentPatientToUpdate.gender = maleButton.isSelected() ? "Male"
+                        : (femaleButton.isSelected() ? "Female" : "");
+                currentPatientToUpdate.address = addressField.getText().trim();
+                currentPatientToUpdate.medHistory = (String) medHistoryDropdown.getSelectedItem();
+                currentPatientToUpdate.contact = contactField.getText().trim();
+
+                //display updated patient data
+                tableModel.addRow(new Object[] {
+                        currentPatientToUpdate.name,
+                        currentPatientToUpdate.age,
+                        currentPatientToUpdate.gender,
+                        currentPatientToUpdate.address,
+                        currentPatientToUpdate.medHistory,
+                        currentPatientToUpdate.contact,
+                        getRecommendations(currentPatientToUpdate)
+                });
+
+                JOptionPane.showMessageDialog(frame, "Patient details updated successfully.");
+                currentPatientToUpdate = null;
+
+                nameField.setText("");
+                ageSpinner.setValue(1);
+                genderGroup.clearSelection();
+                addressField.setText("");
+                medHistoryDropdown.setSelectedIndex(0);
+                contactField.setText("");
+            }
+        });
+
+        //displayButton Listener
+        displayButton.addActionListener(e -> {
+            tableModel.setRowCount(0);
+            for (PatientInfo patient : infoQueue) {
+                tableModel.addRow(new Object[] {
+                        patient.name,
+                        patient.age,
+                        patient.gender,
+                        patient.address,
+                        patient.medHistory,
+                        patient.contact,
+                        getRecommendations(patient)
+                });
+            }
+
+        });
+
+        //searchButton Listener
+        searchButton.addActionListener(e -> {
+            String searchName = searchField.getText().trim();
+            if (searchName.isEmpty()) {
+                JOptionPane.showMessageDialog(frame, "Please enter a name to search.", "Search Error",
+                        JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            tableModel.setRowCount(0);
+            boolean found = false;
+            for (PatientInfo patient : infoQueue) {
+                if (patient.name.equalsIgnoreCase(searchName)) {
+                    tableModel.addRow(new Object[] {
+                            patient.name,
+                            patient.age,
+                            patient.gender,
+                            patient.address,
+                            patient.medHistory,
+                            patient.contact,
+                            getRecommendations(patient)
+                    });
+                    found = true;
+                }
+            }
+
+            if (found) {
+                JOptionPane.showMessageDialog(frame, "Patient [ " + searchName.toUpperCase() + " ] found.");
+                searchField.setText("");
+            } else {
+                JOptionPane.showMessageDialog(frame, "Patient [ " + searchName.toUpperCase() + " ] not found.", "Search Error", JOptionPane.ERROR_MESSAGE);
+            }
+
+        });
+
+        //deleteButton Listener
+        boolean[] deleteMode = { false }; // Track delete mode
+        deleteButton.addActionListener(e -> {
+
+            if (tableModel.getRowCount() == 0) {
+                JOptionPane.showMessageDialog(frame, "No patient data in the system.", "Delete Error",
+                        JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            if (!deleteMode[0]) {
+
+                //first click: enter delete mode
+                JOptionPane.showMessageDialog(frame, "Tick the checkbox of patient data that you want to delete.");
+                deleteMode[0] = true;
+
+                //add checkbox column for deletion
+                String[] deleteColumnNames = { "Name", "Age", "Gender", "Address", "Medical History", "Contact", "Recommendation", "Select To Delete" };
+                tableModel.setColumnIdentifiers(deleteColumnNames);
+                tableModel.setRowCount(0);
+
+                for (PatientInfo patient : infoQueue) {
+                    tableModel.addRow(new Object[] {
+                            patient.name,
+                            patient.age,
+                            patient.gender,
+                            patient.address,
+                            patient.medHistory,
+                            patient.contact,
+                            getRecommendations(patient),
+                            false //checkbox
+                    });
+                }
+
+                patientTable.getColumnModel().getColumn(7).setCellEditor(new DefaultCellEditor(new JCheckBox()));
+                patientTable.getColumnModel().getColumn(7).setCellRenderer(new DefaultTableCellRenderer() {
+
+                    @Override
+                    public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                        JCheckBox checkBox = new JCheckBox();
+                        checkBox.setSelected(value != null && (Boolean) value);
+                        checkBox.setHorizontalAlignment(SwingConstants.CENTER);
+                        return checkBox;
+                    }
+                
+                });
+
+            } else {
+
+                //second click: confirm deletion
+                int rowCount = patientTable.getRowCount();
+                Queue<PatientInfo> newQueue = new LinkedList<>();
+
+                for (int i = 0; i < rowCount; i++) {
+                    Boolean isSelected = (Boolean) patientTable.getValueAt(i, 7);
+                    if (isSelected == null || !isSelected) {
+
+                        //keeping unselected patients
+                        newQueue.add(new PatientInfo(
+                                (String) patientTable.getValueAt(i, 0),
+                                (Integer) patientTable.getValueAt(i, 1),
+                                (String) patientTable.getValueAt(i, 2),
+                                (String) patientTable.getValueAt(i, 3),
+                                (String) patientTable.getValueAt(i, 4),
+                                (String) patientTable.getValueAt(i, 5)));
+
+                    }
+                }
+
+                infoQueue = newQueue;
+                deleteMode[0] = false;
+
+                //restore table structure
+                String[] originalColumnNames = { "Name", "Age", "Gender", "Address", "Medical History", "Contact", "Recommendation" };
+                tableModel.setColumnIdentifiers(originalColumnNames);
+                displayButton.doClick(); //refresh displayed data
+                JOptionPane.showMessageDialog(frame, "Selected patients deleted.");
+            }
+        });
+
+        //add panel to frame and assign the layout
+        frame.add(inputPanel, BorderLayout.NORTH);
+        frame.add(tablePanel, BorderLayout.CENTER);
+        frame.add(buttonPanel, BorderLayout.SOUTH);
+
+        frame.setVisible(true);
+    }
+
+    @Override
+    public void addPatient(PatientInfo patient) {
+        infoQueue.add(patient);
+    }
+
+    @Override
+    public void updatePatient(String name, PatientInfo updatedPatient) {
+        boolean found = false;
+        Queue<PatientInfo> nQueue = new LinkedList<>();
+
+        while (!infoQueue.isEmpty()) {
+            PatientInfo current = infoQueue.poll();
+            if (current.name.equalsIgnoreCase(name)) {
+                nQueue.add(updatedPatient);
+                found = true;
+            } else {
+                nQueue.add(current);
+            }
+        }
+        infoQueue = nQueue;
+
+        if (!found) {
+            System.out.println("Patient does not exist");
+        }
+    }
+
+    @Override
+    public void displayAllPatients() {
+        for (PatientInfo patient : infoQueue) {
+            System.out.println(patient);
+        }
+    }
+
+    //recommendation
+    private String getRecommendations(PatientInfo info) {
+        String history = info.medHistory.toLowerCase();
+        if (history.contains("anxiety")) {
+            return "Try deep breathing exercises and sticking to a daily routine";
+        } else if (history.contains("depression")) {
+            return "Stay active and connect with positive people";
+        } else if (history.contains("stress")) {
+            return "Use stress management techniques like yoga or time management";
+        } else if (history.contains("bipolar")) {
+            return "Stick to a regular sleep schedule and follow medication intake";
+        } else if (history.contains("insomnia")) {
+            return "Keep a regular bedtime and try relaxation methods";
+        } else {
+            return "Focus on healthy habits and self care";
+        }
+    }
+}
